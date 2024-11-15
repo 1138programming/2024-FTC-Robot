@@ -1,36 +1,10 @@
-/* Copyright (c) 2021 FIRST. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted (subject to the limitations in the disclaimer below) provided that
- * the following conditions are met:
- *
- * Redistributions of source code must retain the above copyright notice, this list
- * of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice, this
- * list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
- *
- * Neither the name of FIRST nor the names of its contributors may be used to endorse or
- * promote products derived from this software without specific prior written permission.
- *
- * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
- * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 package org.firstinspires.ftc.teamcode;
 
+
+
+
 import com.qualcomm.hardware.kauailabs.NavxMicroNavigationSensor;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -66,9 +40,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
 
-@TeleOp(name="OpMode done 2", group="Linear OpMode")
 
-public class Opmode extends LinearOpMode {
+
+@Autonomous(name="driveForward", group="Linear OpMode")
+
+public class driveForward extends LinearOpMode {
 
     // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime = new ElapsedTime();
@@ -77,7 +53,6 @@ public class Opmode extends LinearOpMode {
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
     private DcMotor armMotor = null;
-    private DcMotor teleMotor = null;
 
     private Servo Wrist = null;
     private Servo Roller = null;
@@ -87,7 +62,30 @@ public class Opmode extends LinearOpMode {
     boolean start = false;
     boolean reversed  = false;
     boolean lastpress = false;
+    double left_stick_y;  //Note: pushing stick forward gives negative value
+    double left_stick_x;
+    double right_stick_x;
+    boolean y_button;
+    boolean b_button;
+    boolean a_button;
+    boolean Left_Bumber;
+    boolean Right_Bumber;
+    double Left_Trigger;
+    double Right_Trigger;
+    public void setValues(double nleft_stick_y, double nleft_stick_x, double nright_stick_x, boolean ny_button, boolean na_button, boolean nb_button, boolean NLeft_Bumber, boolean  NRight_Bumber, double NLeft_Trigger, double NRight_Trigger) {
+        left_stick_y  = nleft_stick_y; //Note: pushing stick forward gives negative value
+        left_stick_x = nleft_stick_x;
+        right_stick_x = nright_stick_x;
+        y_button = ny_button;
+        b_button = nb_button;
+        a_button = na_button;
 
+        Left_Bumber = NLeft_Bumber;
+        Right_Bumber = NRight_Bumber;
+        Left_Trigger = NLeft_Trigger;
+        Right_Trigger =  NRight_Trigger;
+
+    }
 
     @Override
     public void runOpMode() {
@@ -100,8 +98,6 @@ public class Opmode extends LinearOpMode {
         rightBackDrive = hardwareMap.get(DcMotor.class, "Right_Back");
 
         armMotor = hardwareMap.get(DcMotor.class, "Arm");
-        teleMotor = hardwareMap.get(DcMotor.class, "tele");
-
 
         Wrist = hardwareMap.get(Servo.class, "Wrist");
         Roller = hardwareMap.get(Servo.class, "Roller");
@@ -126,7 +122,7 @@ public class Opmode extends LinearOpMode {
 
         Wrist.setDirection(Servo.Direction.FORWARD);
         Roller.setDirection(Servo.Direction.FORWARD);
-        teleMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
 
@@ -143,6 +139,10 @@ public class Opmode extends LinearOpMode {
         runtime.reset();
 
 
+
+
+
+
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
             double max;
@@ -150,9 +150,9 @@ public class Opmode extends LinearOpMode {
 
 
             // POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
-            double axial   = -gamepad1.left_stick_y;  // Note: pushing stick forward gives negative value
-            double lateral =  gamepad1.left_stick_x;
-            double yaw     =  gamepad1.right_stick_x;
+            double axial   = -left_stick_y;  // Note: pushing stick forward gives negative value
+            double lateral =  left_stick_x;
+            double yaw     =  right_stick_x;
 
             // Combine the joystick requests for each axis-motion to determine each wheel's power.
             // Set up a variable for each drive wheel to save the power level for telemetry.
@@ -205,11 +205,11 @@ public class Opmode extends LinearOpMode {
                 rightBackDrive.setPower(-rightBackPower);
             }
 
-            if (gamepad1.y && !lastpress){
+            if (y_button && !lastpress){
                 reversed = !reversed;
                 lastpress = true;
             }
-            else if (!gamepad1.y){
+            else if (!y_button){
                 lastpress = false;
             }
 
@@ -248,10 +248,10 @@ public class Opmode extends LinearOpMode {
             }
 
 
-            if (gamepad2.a) {
+            if (a_button) {
                 Roller.setPosition(0);
             }
-            else if (gamepad2.b) {
+            else if (b_button) {
                 Roller.setPosition(1);
             }
             else {
@@ -274,3 +274,4 @@ public class Opmode extends LinearOpMode {
             telemetry.update();
         }
     }}
+

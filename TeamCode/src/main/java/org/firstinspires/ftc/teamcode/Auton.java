@@ -30,13 +30,15 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.kauailabs.NavxMicroNavigationSensor;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IntegratingGyroscope;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import java.util.concurrent.TimeUnit;
 
 /*
  * This file contains an example of a Linear "OpMode".
@@ -66,9 +68,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
 
-@TeleOp(name="OpMode done 2", group="Linear OpMode")
 
-public class Opmode extends LinearOpMode {
+
+@Autonomous(name="Auton", group="Linear OpMode")
+
+public class Auton extends LinearOpMode {
 
     // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime = new ElapsedTime();
@@ -77,7 +81,6 @@ public class Opmode extends LinearOpMode {
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
     private DcMotor armMotor = null;
-    private DcMotor teleMotor = null;
 
     private Servo Wrist = null;
     private Servo Roller = null;
@@ -87,11 +90,31 @@ public class Opmode extends LinearOpMode {
     boolean start = false;
     boolean reversed  = false;
     boolean lastpress = false;
+    double left_stick_y;  //Note: pushing stick forward gives negative value
+    double left_stick_x;
+    double right_stick_x;
+    boolean y_button;
+    boolean b_button;
+    boolean a_button;
+    boolean Left_Bumber;
+    boolean Right_Bumber;
+    double Left_Trigger;
+    double Right_Trigger;
 
+    public void  setvalues (double nleft_stick_y, double nleft_stick_x, double nright_stick_x, boolean ny_button, boolean na_button, boolean nb_button, boolean NLeft_Bumber, boolean  NRight_Bumber, double NLeft_Trigger, double NRight_Trigger ) {
+        left_stick_y = nleft_stick_y; //Note: pushing stick forward gives negative value
+        left_stick_x = nleft_stick_x;
+        right_stick_x = nright_stick_x;
+        y_button = ny_button;
+        b_button = nb_button;
+        a_button = na_button;
 
-    @Override
-    public void runOpMode() {
-
+        Left_Bumber = NLeft_Bumber;
+        Right_Bumber = NRight_Bumber;
+        Left_Trigger = NLeft_Trigger;
+        Right_Trigger = NRight_Trigger;
+    }
+    public void runcomm () {
         // Initialize the hardware variables. Note that the strings used here must correspond
         // to the names assigned during the robot configuration step on the DS or RC devices.
         leftFrontDrive  = hardwareMap.get(DcMotor.class, "Left_Front");
@@ -100,8 +123,6 @@ public class Opmode extends LinearOpMode {
         rightBackDrive = hardwareMap.get(DcMotor.class, "Right_Back");
 
         armMotor = hardwareMap.get(DcMotor.class, "Arm");
-        teleMotor = hardwareMap.get(DcMotor.class, "tele");
-
 
         Wrist = hardwareMap.get(Servo.class, "Wrist");
         Roller = hardwareMap.get(Servo.class, "Roller");
@@ -120,69 +141,58 @@ public class Opmode extends LinearOpMode {
         // Reverse the direction (flip FORWARD <-> REVERSE ) of any wheel that runs backward
         // Keep testing until ALL the wheels move the robot forward when you push the left joystick forward.
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
+        leftFrontDrive.getCurrentPosition();
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
 
         Wrist.setDirection(Servo.Direction.FORWARD);
         Roller.setDirection(Servo.Direction.FORWARD);
-        teleMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-
-        // A timer helps provide feedback while calibration is taking place
-        ElapsedTime timer = new ElapsedTime();
-
-        // Wait for the game to start (driver presses START)
-        telemetry.addData("Status", "Initialized");
-        telemetry.update();
-
-        double wristposition = 0;
-
-        waitForStart();
-        runtime.reset();
-
-
-        // run until the end of the match (driver presses STOP)
-        while (opModeIsActive()) {
-            double max;
+        double max;
 
 
 
-            // POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
-            double axial   = -gamepad1.left_stick_y;  // Note: pushing stick forward gives negative value
-            double lateral =  gamepad1.left_stick_x;
-            double yaw     =  gamepad1.right_stick_x;
 
-            // Combine the joystick requests for each axis-motion to determine each wheel's power.
-            // Set up a variable for each drive wheel to save the power level for telemetry.
-            double leftFrontPower  = axial + lateral + yaw;
-            double rightFrontPower = axial - lateral - yaw;
-            double leftBackPower   = axial - lateral + yaw;
-            double rightBackPower  = axial + lateral - yaw;
 
-            // Normalize the values so no wheel power exceeds 100%
-            // This ensures that the robot maintains the desired motion.
-            max = Math.max(Math.abs(leftFrontPower), Math.abs(rightFrontPower));
-            max = Math.max(max, Math.abs(leftBackPower));
-            max = Math.max(max, Math.abs(rightBackPower));
+        // POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
+        double axial   = -left_stick_y;  // Note: pushing stick forward gives negative value
+        double lateral =  left_stick_x;
+        double yaw     =  right_stick_x;
 
-            if (max > 1.0) {
-                leftFrontPower  /= max;
-                rightFrontPower /= max;
-                leftBackPower   /= max;
-                rightBackPower  /= max;
-            }
+        // Combine the joystick requests for each axis-motion to determine each wheel's power.
+        // Set up a variable for each drive wheel to save the power level for telemetry.
+        double leftFrontPower  = axial + lateral + yaw;
+        double rightFrontPower = axial - lateral - yaw;
+        double leftBackPower   = axial - lateral + yaw;
+        double rightBackPower  = axial + lateral - yaw;
 
-            // This is test code:
-            //
-            // Uncomment the following code to test your motor directions.
-            // Each button should make the corresponding motor run FORWARD.
-            //   1) First get all the motors to take to correct positions on the robot
-            //      by adjusting your Robot Configuration if necessary.
-            //   2) Then make sure they run in the correct direction by modifying the
-            //      the setDirection() calls above.
-            // Once the correct motors move in the correct direction re-comment this code.
+
+
+        // Normalize the values so no wheel power exceeds 100%
+        // This ensures that the robot maintains the desired motion.
+        max = Math.max(Math.abs(leftFrontPower), Math.abs(rightFrontPower));
+        max = Math.max(max, Math.abs(leftBackPower));
+        max = Math.max(max, Math.abs(rightBackPower));
+
+        if (max > 1.0) {
+            leftFrontPower  /= max;
+            rightFrontPower /= max;
+            leftBackPower   /= max;
+            rightBackPower  /= max;
+        }
+
+        // This is test code:
+        //
+        // Uncomment the following code to test your motor directions.
+        // Each button should make the corresponding motor run FORWARD.
+        //   1) First get all the motors to take to correct positions on the robot
+        //      by adjusting your Robot Configuration if necessary.
+        //   2) Then make sure they run in the correct direction by modifying the
+        //      the setDirection() calls above.
+        // Once the correct motors move in the correct direction re-comment this code.
 
             /*
             leftFrontPower  = gamepad1.x ? 1.0 : 0.0;  // X gamepad
@@ -191,86 +201,83 @@ public class Opmode extends LinearOpMode {
             rightBackPower  = gamepad1.b ? 1.0 : 0.0;  // B gamepad
             */
 
-            // Send calculated power to wheels
-            if (!reversed) {
-                leftFrontDrive.setPower(leftFrontPower);
-                rightFrontDrive.setPower(rightFrontPower);
-                leftBackDrive.setPower(leftBackPower);
-                rightBackDrive.setPower(rightBackPower);
-            }
-            else {
-                leftFrontDrive.setPower(-leftFrontPower);
-                rightFrontDrive.setPower(-rightFrontPower);
-                leftBackDrive.setPower(-leftBackPower);
-                rightBackDrive.setPower(-rightBackPower);
-            }
-
-            if (gamepad1.y && !lastpress){
-                reversed = !reversed;
-                lastpress = true;
-            }
-            else if (!gamepad1.y){
-                lastpress = false;
-            }
-
-
-
-            if (gamepad2.left_bumper) {
-                armMotor.setPower(1);
-            }
-            else if (gamepad2.left_trigger > 0) {
-                armMotor.setPower(-1);
-            }
-            else {
-                armMotor.setPower(0);
-            }
-
-
-
-
-
-
-
-
-            if (gamepad2.right_bumper) {
-                start = true;
-                Wrist.setPosition(0);
-            }
-            else if (gamepad2.right_trigger > 0) {
-                start = true;
-                Wrist.setPosition(1);
-            }
-            else  if (start){
-                Wrist.setPosition(0.5);
-            }
-            else {
-                Wrist.setPosition(0);
-            }
-
-
-            if (gamepad2.a) {
-                Roller.setPosition(0);
-            }
-            else if (gamepad2.b) {
-                Roller.setPosition(1);
-            }
-            else {
-                Roller.setPosition(0.5);
-            }
-
-
-
-
-
-            // Show the elapsed game time and wheel power.
-            telemetry.addData("Status", "Run Time: " + runtime.toString());
-            telemetry.addData("Front left/Right", "%4.2f, %4.2f", leftFrontPower, rightFrontPower);
-            telemetry.addData("Back  left/Right", "%4.2f, %4.2f", leftBackPower, rightBackPower);
-            telemetry.addData("Roller Pos",  Roller.getPosition());
-            telemetry.addData("Wrist Pos",  Wrist.getPosition());
-            telemetry.addData("Arm Pos",  armMotor.getCurrentPosition());
-            telemetry.addData("Gyro",  gyro.getAngularVelocityAxes());
-            telemetry.addData("Reversed:",reversed);
-            telemetry.update();
+        // Send calculated power to wheels
+        if (!reversed) {
+            leftFrontDrive.setPower(leftFrontPower);
+            rightFrontDrive.setPower(rightFrontPower);
+            leftBackDrive.setPower(leftBackPower);
+            rightBackDrive.setPower(rightBackPower);
         }
+        else {
+            leftFrontDrive.setPower(-leftFrontPower);
+            rightFrontDrive.setPower(-rightFrontPower);
+            leftBackDrive.setPower(-leftBackPower);
+            rightBackDrive.setPower(-rightBackPower);
+        }
+        if (y_button && !lastpress){
+            reversed = !reversed;
+            lastpress = true;
+        }
+        else if (!y_button){
+            lastpress = false;
+        }
+
+        if (gamepad2.left_bumper) {
+            armMotor.setPower(1);
+        }
+        else if (gamepad2.left_trigger > 0) {
+            armMotor.setPower(-1);
+        }
+        else {
+            armMotor.setPower(0);
+        }
+
+        if (gamepad2.right_bumper) {
+            start = true;
+            Wrist.setPosition(0);
+        }
+        else if (gamepad2.right_trigger > 0) {
+            start = true;
+            Wrist.setPosition(1);
+        }
+        else  if (start){
+            Wrist.setPosition(0.5);
+        }
+        else {
+            Wrist.setPosition(0);
+        }
+
+
+        if (a_button) {
+            Roller.setPosition(0);
+        }
+        else if (b_button) {
+            Roller.setPosition(1);
+        }
+        else {
+            Roller.setPosition(0.5);
+        }
+    }
+
+    @Override
+    public void runOpMode() {
+        waitForStart();
+        setvalues(-1, 0,0, false,false, false, false,false,0,0 );
+        int x=0;
+        while (x<100) {
+            runcomm();
+            x++;
+        }
+
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        setvalues(0, 0,0, false,false, false, false,false,0,0 );
+
+
+
     }}

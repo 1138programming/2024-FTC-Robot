@@ -3,6 +3,14 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/2024-FTC-Robot.iml" filepath="$PROJECT_DIR$/.idea/2024-FTC-Robot.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/FtcRobotController/2024-FTC-Robot.FtcRobotController.iml" filepath="$PROJECT_DIR$/.idea/modules/FtcRobotController/2024-FTC-Robot.FtcRobotController.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/FtcRobotController/2024-FTC-Robot.FtcRobotController.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/FtcRobotController/2024-FTC-Robot.FtcRobotController.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/FtcRobotController/2024-FTC-Robot.FtcRobotController.main.iml" filepath="$PROJECT_DIR$/.idea/modules/FtcRobotController/2024-FTC-Robot.FtcRobotController.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/FtcRobotController/2024-FTC-Robot.FtcRobotController.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/FtcRobotController/2024-FTC-Robot.FtcRobotController.unitTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/TeamCode/2024-FTC-Robot.TeamCode.iml" filepath="$PROJECT_DIR$/.idea/modules/TeamCode/2024-FTC-Robot.TeamCode.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/TeamCode/2024-FTC-Robot.TeamCode.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/TeamCode/2024-FTC-Robot.TeamCode.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/TeamCode/2024-FTC-Robot.TeamCode.main.iml" filepath="$PROJECT_DIR$/.idea/modules/TeamCode/2024-FTC-Robot.TeamCode.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/TeamCode/2024-FTC-Robot.TeamCode.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/TeamCode/2024-FTC-Robot.TeamCode.unitTest.iml" />
     </modules>
   </component>
 </project>
