@@ -34,9 +34,16 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.IntegratingGyroscope;
+import com.qualcomm.robotcore.hardware.PIDCoefficients;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 
 /*
  * This file contains an example of a Linear "OpMode".
@@ -76,7 +83,7 @@ public class Opmode extends LinearOpMode {
     private DcMotor leftBackDrive = null;
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
-    private DcMotor armMotor = null;
+    private DcMotorEx armMotor = null;
     private DcMotor teleMotor = null;
 
     private Servo Wrist = null;
@@ -84,11 +91,30 @@ public class Opmode extends LinearOpMode {
 
     private    IntegratingGyroscope gyro;
     private NavxMicroNavigationSensor navxMicro;
-    boolean start = false;
-    boolean reversed  = false;
-    boolean lastpress = false;
+    private boolean start = false;
+    private boolean reversed  = false;
+    private boolean lastpress = false;
+    private final double NEW_P = 25;
+    private final double NEW_I = 0;
+    private final double NEW_D = 3.6;//3.5
+    private final double NEW_F = 0;
+    PIDFCoefficients pidfNew = new PIDFCoefficients(NEW_P, NEW_I, NEW_D, NEW_F);
+    private int armTarget= 0;
 
-
+    public double speedlimiter(double input) {
+        double output =0;
+        double limitedOutput = -Math.log10(-(Math.abs(input)-1.1));
+        if (limitedOutput <= 0.1) {
+            output = 0.1;
+        }
+        else {
+            output = limitedOutput;
+        }
+        if (input < 0) {
+            output *=-1;
+        }
+        return output;
+    }
     @Override
     public void runOpMode() {
 
@@ -99,15 +125,16 @@ public class Opmode extends LinearOpMode {
         rightFrontDrive = hardwareMap.get(DcMotor.class, "Right_Front");
         rightBackDrive = hardwareMap.get(DcMotor.class, "Right_Back");
 
-        armMotor = hardwareMap.get(DcMotor.class, "Arm");
+        armMotor = hardwareMap.get(DcMotorEx.class, "Arm");
         teleMotor = hardwareMap.get(DcMotor.class, "tele");
-
-
+        armMotor.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidfNew);
         Wrist = hardwareMap.get(Servo.class, "Wrist");
         Roller = hardwareMap.get(Servo.class, "Roller");
 
         navxMicro = hardwareMap.get(NavxMicroNavigationSensor.class, "navx");
         gyro = (IntegratingGyroscope)navxMicro;
+
+        armTarget = armMotor.getCurrentPosition() + 100;
 
         // ########################################################################################
         // !!!            IMPORTANT Drive Information. Test your motor directions.            !!!!!
@@ -128,6 +155,9 @@ public class Opmode extends LinearOpMode {
         Roller.setDirection(Servo.Direction.FORWARD);
         teleMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+
+
 
 
         // A timer helps provide feedback while calibration is taking place
@@ -154,12 +184,17 @@ public class Opmode extends LinearOpMode {
             double lateral =  gamepad1.left_stick_x;
             double yaw     =  gamepad1.right_stick_x;
 
+            double lowSpeed = 0.45;
+            double midSpeed = 0.70;
+            double highSpeed = 0.90;
             // Combine the joystick requests for each axis-motion to determine each wheel's power.
             // Set up a variable for each drive wheel to save the power level for telemetry.
-            double leftFrontPower  = axial + lateral + yaw;
-            double rightFrontPower = axial - lateral - yaw;
-            double leftBackPower   = axial - lateral + yaw;
-            double rightBackPower  = axial + lateral - yaw;
+            double leftFrontPower  = (axial + lateral + yaw) * midSpeed;
+            double rightFrontPower = (axial - lateral - yaw) * midSpeed;
+            double leftBackPower   = (axial - lateral + yaw) * midSpeed;
+            double rightBackPower  = (axial + lateral - yaw) * midSpeed;
+
+
 
             // Normalize the values so no wheel power exceeds 100%
             // This ensures that the robot maintains the desired motion.
@@ -215,14 +250,39 @@ public class Opmode extends LinearOpMode {
 
 
 
+
+
             if (gamepad2.left_bumper) {
-                armMotor.setPower(1);
+//                armMotor.setPower(1);
+                armTarget = armMotor.getCurrentPosition() + 50;
             }
             else if (gamepad2.left_trigger > 0) {
-                armMotor.setPower(-1);
+//                armMotor.setPower(-1);
+                armTarget = armMotor.getCurrentPosition() - 50;
+            }
+//            else {
+////                armTarget = armMotor.getCurrentPosition();
+////                armMotor.setPower(0);
+//            }
+
+
+            armMotor.setTargetPosition(armTarget);
+            armMotor.setPower(1);
+            armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+
+
+
+
+
+            if (gamepad2.dpad_down) {
+                teleMotor.setPower(0.7);
+            }
+            else if (gamepad2.dpad_up && teleMotor.getCurrentPosition() > -1920) {
+                teleMotor.setPower(-0.7);
             }
             else {
-                armMotor.setPower(0);
+                teleMotor.setPower(0);
             }
 
 
@@ -234,25 +294,27 @@ public class Opmode extends LinearOpMode {
 
             if (gamepad2.right_bumper) {
                 start = true;
-                Wrist.setPosition(0);
+                Wrist.setPosition(0.15);
             }
             else if (gamepad2.right_trigger > 0) {
                 start = true;
-                Wrist.setPosition(1);
+                Wrist.setPosition(0.85);
             }
             else  if (start){
                 Wrist.setPosition(0.5);
             }
             else {
-                Wrist.setPosition(0);
+//                Wrist.setPosition(0.85);
+                 Wrist.setPosition(0.5);
+
             }
 
 
             if (gamepad2.a) {
-                Roller.setPosition(0);
+                Roller.setPosition(0.1);
             }
             else if (gamepad2.b) {
-                Roller.setPosition(1);
+                Roller.setPosition(0.9);
             }
             else {
                 Roller.setPosition(0.5);
@@ -269,7 +331,14 @@ public class Opmode extends LinearOpMode {
             telemetry.addData("Roller Pos",  Roller.getPosition());
             telemetry.addData("Wrist Pos",  Wrist.getPosition());
             telemetry.addData("Arm Pos",  armMotor.getCurrentPosition());
-            telemetry.addData("Gyro",  gyro.getAngularVelocityAxes());
+            telemetry.addData("Arm Pid", armMotor.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER));
+            telemetry.addData("Tele Pos",  teleMotor.getCurrentPosition());
+            telemetry.addData("Arm Vel", armMotor.getVelocity());
+            telemetry.addData("Arm target", armMotor.getTargetPosition());
+            telemetry.addData("target",  armTarget);
+            telemetry.addData("Gyro",  gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).firstAngle);
+            telemetry.addData("Gyro",  gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).secondAngle);
+            telemetry.addData("Gyro",  gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).thirdAngle);
             telemetry.addData("Reversed:",reversed);
             telemetry.update();
         }

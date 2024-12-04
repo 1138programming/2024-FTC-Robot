@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.IntegratingGyroscope;
 
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
@@ -16,6 +17,7 @@ public class drivebase {
 
     Orientation orientation;
     OpenGLMatrix RotMatrix;
+    AngularVelocity angle;
 
     float felidRot;
 
@@ -25,11 +27,14 @@ public class drivebase {
         this.RB =RB;
         this.RF =RF;
         this.gyro = gyro;
+
         orientation = gyro.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ,AngleUnit.DEGREES);
         RotMatrix =  orientation.getRotationMatrix();
         RotMatrix.get(0,0);
-        gyro.getAngularVelocity(AngleUnit.DEGREES);
-        gyro.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ,AngleUnit.DEGREES);
+        angle = gyro.getAngularVelocity(AngleUnit.DEGREES);
+
+        orientation.getRotationMatrix().getData();
+
     }
     public void drive(float x_velocity, float y_velocity, float Rot, Boolean reversed) {
         double max;

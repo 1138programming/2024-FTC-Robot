@@ -31,6 +31,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.kauailabs.NavxMicroNavigationSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -234,17 +235,17 @@ public class Auton extends LinearOpMode {
 
         if (gamepad2.right_bumper) {
             start = true;
-            Wrist.setPosition(0);
+            Wrist.setPosition(0.15);
         }
         else if (gamepad2.right_trigger > 0) {
             start = true;
-            Wrist.setPosition(1);
+            Wrist.setPosition(0.85);
         }
         else  if (start){
             Wrist.setPosition(0.5);
         }
         else {
-            Wrist.setPosition(0);
+            Wrist.setPosition(0.85);
         }
 
 
@@ -261,19 +262,20 @@ public class Auton extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+
         waitForStart();
-        setvalues(-1, 0,0, false,false, false, false,false,0,0 );
-        int x=0;
-        while (x<100) {
+        setvalues(-0.7, 0,0, false,false, false, false,false,0,0 );
+        for (int x=0;x < 55; x++) {
             runcomm();
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             x++;
         }
 
-        try {
-            Thread.sleep(10);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+
 
 
         setvalues(0, 0,0, false,false, false, false,false,0,0 );
