@@ -94,12 +94,13 @@ public class Opmode extends LinearOpMode {
     private boolean start = false;
     private boolean reversed  = false;
     private boolean lastpress = false;
-    private final double NEW_P = 25;
+    private final double NEW_P = 10;//25 //10
     private final double NEW_I = 0;
     private final double NEW_D = 3.6;//3.5
     private final double NEW_F = 0;
     PIDFCoefficients pidfNew = new PIDFCoefficients(NEW_P, NEW_I, NEW_D, NEW_F);
-    private int armTarget= 0;
+
+
 
     public double speedlimiter(double input) {
         double output =0;
@@ -117,7 +118,10 @@ public class Opmode extends LinearOpMode {
     }
     @Override
     public void runOpMode() {
-
+        int armTarget= 0;
+        double speed = 0;
+        boolean speedtoggle = false;
+        int last = 0;
         // Initialize the hardware variables. Note that the strings used here must correspond
         // to the names assigned during the robot configuration step on the DS or RC devices.
         leftFrontDrive  = hardwareMap.get(DcMotor.class, "Left_Front");
@@ -175,9 +179,8 @@ public class Opmode extends LinearOpMode {
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
+
             double max;
-
-
 
             // POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
             double axial   = -gamepad1.left_stick_y;  // Note: pushing stick forward gives negative value
@@ -187,14 +190,20 @@ public class Opmode extends LinearOpMode {
             double lowSpeed = 0.45;
             double midSpeed = 0.70;
             double highSpeed = 0.90;
+
+            if (speedtoggle) {
+                speed = highSpeed;
+            }
+            else {
+                speed = lowSpeed;
+            }
+
             // Combine the joystick requests for each axis-motion to determine each wheel's power.
             // Set up a variable for each drive wheel to save the power level for telemetry.
-            double leftFrontPower  = (axial + lateral + yaw) * midSpeed;
-            double rightFrontPower = (axial - lateral - yaw) * midSpeed;
-            double leftBackPower   = (axial - lateral + yaw) * midSpeed;
-            double rightBackPower  = (axial + lateral - yaw) * midSpeed;
-
-
+            double leftFrontPower  = (axial + lateral + yaw) * speed;
+            double rightFrontPower = (axial - lateral - yaw) * speed;
+            double leftBackPower   = (axial - lateral + yaw) * speed;
+            double rightBackPower  = (axial + lateral - yaw) * speed;
 
             // Normalize the values so no wheel power exceeds 100%
             // This ensures that the robot maintains the desired motion.
@@ -248,27 +257,44 @@ public class Opmode extends LinearOpMode {
                 lastpress = false;
             }
 
-
-
-
-
+            if (gamepad1.left_bumper){
+               speedtoggle = true;
+            }
+            else {
+                speedtoggle = false;
+            }
+            armMotor.setPower(1);
             if (gamepad2.left_bumper) {
-//                armMotor.setPower(1);
-                armTarget = armMotor.getCurrentPosition() + 50;
+                last = 5;
+                armMotor.setPower(0.5);
+//                armTarget = armMotor.getCurrentPosition() + 100;
+                armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             }
             else if (gamepad2.left_trigger > 0) {
-//                armMotor.setPower(-1);
-                armTarget = armMotor.getCurrentPosition() - 50;
+                last = -5;
+                armMotor.setPower(-0.4);
+//                armTarget = armMotor.getCurrentPosition() - 100;
+                armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             }
-//            else {
-////                armTarget = armMotor.getCurrentPosition();
-////                armMotor.setPower(0);
-//            }
+            else if (last != 0) {
+                armTarget = (armMotor.getCurrentPosition() + last);
+                armMotor.setTargetPosition(armTarget);
+                armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                last = 0;
+            }
+           else {
+               armMotor.setTargetPosition(armTarget);
+               armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+           }
+           if (gamepad2.x)  {
+               armTarget = 1859;
+               armMotor.setTargetPosition(armTarget);//204
+               armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+           }
 
 
-            armMotor.setTargetPosition(armTarget);
-            armMotor.setPower(1);
-            armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
 
 
 
@@ -276,19 +302,19 @@ public class Opmode extends LinearOpMode {
 
 
             if (gamepad2.dpad_down) {
-                teleMotor.setPower(0.7);
+                teleMotor.setPower(1);//0.7
             }
-            else if (gamepad2.dpad_up && teleMotor.getCurrentPosition() > -1920) {
-                teleMotor.setPower(-0.7);
+            else if (gamepad2.dpad_up && teleMotor.getCurrentPosition() > -2400) {
+                teleMotor.setPower(-1);//-0.8
             }
             else {
                 teleMotor.setPower(0);
             }
 
 
-
-
-
+// high 1850
+//low arm 1371 tele -1013
+// pickup 204
 
 
 
@@ -335,10 +361,12 @@ public class Opmode extends LinearOpMode {
             telemetry.addData("Tele Pos",  teleMotor.getCurrentPosition());
             telemetry.addData("Arm Vel", armMotor.getVelocity());
             telemetry.addData("Arm target", armMotor.getTargetPosition());
+            telemetry.addData("Last", last);
+            telemetry.addData("ArmisBusyt", armMotor.isBusy());
             telemetry.addData("target",  armTarget);
-            telemetry.addData("Gyro",  gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).firstAngle);
-            telemetry.addData("Gyro",  gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).secondAngle);
-            telemetry.addData("Gyro",  gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).thirdAngle);
+            telemetry.addData("Gyro1",  gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).firstAngle);
+            telemetry.addData("Gyro2",  gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).secondAngle);
+            telemetry.addData("Gyro3",  gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).thirdAngle);
             telemetry.addData("Reversed:",reversed);
             telemetry.update();
         }

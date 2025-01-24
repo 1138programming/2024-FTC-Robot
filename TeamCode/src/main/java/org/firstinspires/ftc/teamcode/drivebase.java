@@ -14,9 +14,9 @@ public class drivebase {
     DcMotor LF,LB,RF,RB;
     IntegratingGyroscope gyro;
 
-
     Orientation orientation;
     OpenGLMatrix RotMatrix;
+    OpenGLMatrix FieldForwardRot;
     AngularVelocity angle;
 
     float felidRot;
@@ -30,8 +30,10 @@ public class drivebase {
 
         orientation = gyro.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ,AngleUnit.DEGREES);
         RotMatrix =  orientation.getRotationMatrix();
+        FieldForwardRot = new OpenGLMatrix( new float[] {0,0,0});
         RotMatrix.get(0,0);
         angle = gyro.getAngularVelocity(AngleUnit.DEGREES);
+
 
         orientation.getRotationMatrix().getData();
 
@@ -101,7 +103,15 @@ public class drivebase {
     }
 
     public void driveFeildRelative(float x_velocity, float y_velocity, float Rot, boolean reversed) {
+        float nx_velocity;
+        float ny_velocity;
+        OpenGLMatrix RotationMatrix;
 
+
+    }
+
+    public void resetfeildrot() {
+        FieldForwardRot = RotMatrix;
 
     }
 

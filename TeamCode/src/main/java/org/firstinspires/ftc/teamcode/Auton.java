@@ -267,11 +267,8 @@ public class Auton extends LinearOpMode {
         setvalues(-0.7, 0,0, false,false, false, false,false,0,0 );
         for (int x=0;x < 55; x++) {
             runcomm();
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            sleep(10);
+
             x++;
         }
 
@@ -283,3 +280,4 @@ public class Auton extends LinearOpMode {
 
 
     }}
+
