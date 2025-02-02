@@ -4,13 +4,14 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IntegratingGyroscope;
 
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
+import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
-public class drivebase {
+public class Drivebase {
     DcMotor LF,LB,RF,RB;
     IntegratingGyroscope gyro;
 
@@ -19,9 +20,9 @@ public class drivebase {
     OpenGLMatrix FieldForwardRot;
     AngularVelocity angle;
 
-    float felidRot;
+    float feildRot;
 
-    public drivebase(DcMotor LF, DcMotor LB, DcMotor RF, DcMotor RB, IntegratingGyroscope gyro){
+    public Drivebase(DcMotor LF, DcMotor LB, DcMotor RF, DcMotor RB, IntegratingGyroscope gyro){
         this.LF =LF;
         this.LB =LB;
         this.RB =RB;
@@ -30,7 +31,7 @@ public class drivebase {
 
         orientation = gyro.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ,AngleUnit.DEGREES);
         RotMatrix =  orientation.getRotationMatrix();
-        FieldForwardRot = new OpenGLMatrix( new float[] {0,0,0});
+
         RotMatrix.get(0,0);
         angle = gyro.getAngularVelocity(AngleUnit.DEGREES);
 
@@ -38,7 +39,9 @@ public class drivebase {
         orientation.getRotationMatrix().getData();
 
     }
-    public void drive(float x_velocity, float y_velocity, float Rot, Boolean reversed) {
+
+
+    public void drive(float x_velocity, float y_velocity, float Rot, boolean reversed, float speed) {
         double max;
 
 
@@ -50,10 +53,10 @@ public class drivebase {
 
         // Combine the joystick requests for each axis-motion to determine each wheel's power.
         // Set up a variable for each drive wheel to save the power level for telemetry.
-        double leftFrontPower  = axial + lateral + yaw;
-        double rightFrontPower = axial - lateral - yaw;
-        double leftBackPower   = axial - lateral + yaw;
-        double rightBackPower  = axial + lateral - yaw;
+        double leftFrontPower  = (axial + lateral + yaw) * speed;
+        double rightFrontPower = (axial - lateral - yaw) * speed;
+        double leftBackPower   = (axial - lateral + yaw) * speed;
+        double rightBackPower  = (axial + lateral - yaw) * speed;
 
         // Normalize the values so no wheel power exceeds 100%
         // This ensures that the robot maintains the desired motion.
@@ -102,16 +105,58 @@ public class drivebase {
 
     }
 
-    public void driveFeildRelative(float x_velocity, float y_velocity, float Rot, boolean reversed) {
+    public void driveFeildRelative(float x_velocity, float y_velocity, float Rot, boolean reversed, float speed) {
         float nx_velocity;
         float ny_velocity;
-        OpenGLMatrix RotationMatrix;
+
+        VectorF nMatrix = new VectorF(new float[] {x_velocity, y_velocity});
+
+        orientation = gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX,AngleUnit.DEGREES);
+//        RotMatrix =  orientation.getRotationMatrix();
+
+
+
+        RotMatrix = Orientation.getRotationMatrix(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES,  getAdjustedAngle() - feildRot, (float) 0, (float) 0);
+
+//        angle = gyro.getAngularVelocity(AngleUnit.DEGREES);
+
+
+
+        VectorF SVector = new VectorF(new float[] {x_velocity, y_velocity, 0, 1});
+
+        VectorF nVector =  RotMatrix.multiplied(SVector);
+
+        drive(nVector.get(0),nVector.get(1),Rot,reversed, speed);
+
+
+
+
+
+
+
+
+
+
+
 
 
     }
 
+
+    public float getAdjustedAngle() {
+        orientation = gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX,AngleUnit.DEGREES);
+        if (orientation.firstAngle < 0  ) {
+            return 180 + (180 + orientation.firstAngle);
+        }
+        else {
+            return orientation.firstAngle;
+        }
+    }
+
     public void resetfeildrot() {
-        FieldForwardRot = RotMatrix;
+
+
+        feildRot = getAdjustedAngle();
 
     }
 

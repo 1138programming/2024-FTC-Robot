@@ -30,13 +30,11 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.kauailabs.NavxMicroNavigationSensor;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.IntegratingGyroscope;
-import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -73,10 +71,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
 
-@TeleOp(name="OpMode done 2", group="Linear OpMode")
+@TeleOp(name="FeildCentricBeta", group="Linear OpMode")
 
-public class Opmode extends LinearOpMode {
+public class FeildCentricBeta extends LinearOpMode {
 
+    private Drivebase drivebase;
     // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor leftFrontDrive = null;
@@ -140,6 +139,7 @@ public class Opmode extends LinearOpMode {
 
         armTarget = armMotor.getCurrentPosition() + 100;
 
+        drivebase = new Drivebase(leftFrontDrive,leftBackDrive,rightFrontDrive, rightBackDrive,gyro);
         // ########################################################################################
         // !!!            IMPORTANT Drive Information. Test your motor directions.            !!!!!
         // ########################################################################################
@@ -175,17 +175,31 @@ public class Opmode extends LinearOpMode {
 
         waitForStart();
         runtime.reset();
-
+        drivebase.resetfeildrot();
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
 
-            double max;
 
-            // POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
-            double axial   = -gamepad1.left_stick_y;  // Note: pushing stick forward gives negative value
-            double lateral =  gamepad1.left_stick_x;
-            double yaw     =  gamepad1.right_stick_x;
+
+//            if (gamepad1.y && !lastpress){
+//                reversed = !reversed;
+//                lastpress = true;
+//            }
+//            else if (!gamepad1.y){
+//                lastpress = false;
+//            }
+
+            if (gamepad1.y && !lastpress){
+                drivebase.resetfeildrot();
+            }
+
+            if (gamepad1.left_bumper){
+               speedtoggle = true;
+            }
+            else {
+                speedtoggle = false;
+            }
 
             double lowSpeed = 0.45;
             double midSpeed = 0.70;
@@ -198,71 +212,9 @@ public class Opmode extends LinearOpMode {
                 speed = lowSpeed;
             }
 
-            // Combine the joystick requests for each axis-motion to determine each wheel's power.
-            // Set up a variable for each drive wheel to save the power level for telemetry.
-            double leftFrontPower  = (axial + lateral + yaw) * speed;
-            double rightFrontPower = (axial - lateral - yaw) * speed;
-            double leftBackPower   = (axial - lateral + yaw) * speed;
-            double rightBackPower  = (axial + lateral - yaw) * speed;
 
-            // Normalize the values so no wheel power exceeds 100%
-            // This ensures that the robot maintains the desired motion.
-            max = Math.max(Math.abs(leftFrontPower), Math.abs(rightFrontPower));
-            max = Math.max(max, Math.abs(leftBackPower));
-            max = Math.max(max, Math.abs(rightBackPower));
+            drivebase.driveFeildRelative(gamepad1.left_stick_x, gamepad1.left_stick_y, gamepad1.right_stick_x, false, (float)speed);
 
-            if (max > 1.0) {
-                leftFrontPower  /= max;
-                rightFrontPower /= max;
-                leftBackPower   /= max;
-                rightBackPower  /= max;
-            }
-
-            // This is test code:
-            //
-            // Uncomment the following code to test your motor directions.
-            // Each button should make the corresponding motor run FORWARD.
-            //   1) First get all the motors to take to correct positions on the robot
-            //      by adjusting your Robot Configuration if necessary.
-            //   2) Then make sure they run in the correct direction by modifying the
-            //      the setDirection() calls above.
-            // Once the correct motors move in the correct direction re-comment this code.
-
-            /*
-            leftFrontPower  = gamepad1.x ? 1.0 : 0.0;  // X gamepad
-            leftBackPower   = gamepad1.a ? 1.0 : 0.0;  // A gamepad
-            rightFrontPower = gamepad1.y ? 1.0 : 0.0;  // Y gamepad
-            rightBackPower  = gamepad1.b ? 1.0 : 0.0;  // B gamepad
-            */
-
-            // Send calculated power to wheels
-            if (!reversed) {
-                leftFrontDrive.setPower(leftFrontPower);
-                rightFrontDrive.setPower(rightFrontPower);
-                leftBackDrive.setPower(leftBackPower);
-                rightBackDrive.setPower(rightBackPower);
-            }
-            else {
-                leftFrontDrive.setPower(-leftFrontPower);
-                rightFrontDrive.setPower(-rightFrontPower);
-                leftBackDrive.setPower(-leftBackPower);
-                rightBackDrive.setPower(-rightBackPower);
-            }
-
-            if (gamepad1.y && !lastpress){
-                reversed = !reversed;
-                lastpress = true;
-            }
-            else if (!gamepad1.y){
-                lastpress = false;
-            }
-
-            if (gamepad1.left_bumper){
-               speedtoggle = true;
-            }
-            else {
-                speedtoggle = false;
-            }
             armMotor.setPower(1);
             if (gamepad2.left_bumper) {
                 last = 5;
@@ -352,8 +304,8 @@ public class Opmode extends LinearOpMode {
 
             // Show the elapsed game time and wheel power.
             telemetry.addData("Status", "Run Time: " + runtime.toString());
-            telemetry.addData("Front left/Right", "%4.2f, %4.2f", leftFrontPower, rightFrontPower);
-            telemetry.addData("Back  left/Right", "%4.2f, %4.2f", leftBackPower, rightBackPower);
+//            telemetry.addData("Front left/Right", "%4.2f, %4.2f", leftFrontPower, rightFrontPower);
+//            telemetry.addData("Back  left/Right", "%4.2f, %4.2f", leftBackPower, rightBackPower);
             telemetry.addData("Roller Pos",  Roller.getPosition());
             telemetry.addData("Wrist Pos",  Wrist.getPosition());
             telemetry.addData("Arm Pos",  armMotor.getCurrentPosition());
@@ -364,9 +316,11 @@ public class Opmode extends LinearOpMode {
             telemetry.addData("Last", last);
             telemetry.addData("ArmisBusyt", armMotor.isBusy());
             telemetry.addData("target",  armTarget);
-//            telemetry.addData("Gyro1",  gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).firstAngle);
-//            telemetry.addData("Gyro2",  gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).secondAngle);
-            telemetry.addData("Angle",  gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).thirdAngle);
+            telemetry.addData("Angle",  drivebase.getAdjustedAngle());
+            telemetry.addData("FeildRot",  drivebase.feildRot);
+            telemetry.addData("Angle Raw",  gyro.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).thirdAngle);
+            telemetry.addData("Matrix",  drivebase.RotMatrix.toString());
+
             telemetry.addData("Reversed:",reversed);
             telemetry.update();
         }
