@@ -116,9 +116,14 @@ public class Opmode extends LinearOpMode {
         }
         return output;
     }
+    int armofset =0;
+    public int getarmpos() {
+        return armMotor.getCurrentPosition() - armofset;
+    }
     @Override
     public void runOpMode() {
         int armTarget= 0;
+        int stop = 2750;
         double speed = 0;
         boolean speedtoggle = false;
         int last = 0;
@@ -137,8 +142,10 @@ public class Opmode extends LinearOpMode {
 
         navxMicro = hardwareMap.get(NavxMicroNavigationSensor.class, "navx");
         gyro = (IntegratingGyroscope)navxMicro;
+        armofset = armMotor.getCurrentPosition();
 
-        armTarget = armMotor.getCurrentPosition() + 100;
+//        armTarget = armMotor.getCurrentPosition() + 100;
+        armTarget = getarmpos() + 100;
 
         // ########################################################################################
         // !!!            IMPORTANT Drive Information. Test your motor directions.            !!!!!
@@ -263,12 +270,21 @@ public class Opmode extends LinearOpMode {
             else {
                 speedtoggle = false;
             }
+
             armMotor.setPower(1);
             if (gamepad2.left_bumper) {
-                last = 5;
-                armMotor.setPower(0.5);
+                if (getarmpos() + 5 < stop) {
+                    last = 5;
+                    armMotor.setPower(0.5);
 //                armTarget = armMotor.getCurrentPosition() + 100;
-                armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                    armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                }
+                else {
+                    armTarget = stop;
+                    armMotor.setTargetPosition(armTarget + armofset);
+                    armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                }
+
             }
             else if (gamepad2.left_trigger > 0) {
                 last = -5;
@@ -277,22 +293,26 @@ public class Opmode extends LinearOpMode {
                 armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             }
             else if (last != 0) {
-                armTarget = (armMotor.getCurrentPosition() + last);
-                armMotor.setTargetPosition(armTarget);
+                if ((getarmpos() + last) < stop) {
+                    armTarget = (getarmpos()  + last);
+                }
+                else {
+                    armTarget = stop;
+                }
+                armMotor.setTargetPosition(armTarget+ armofset);
                 armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 last = 0;
             }
-           else {
-               armMotor.setTargetPosition(armTarget);
-               armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            else {
+                armMotor.setTargetPosition(armTarget+ armofset);
+                armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-           }
-           if (gamepad2.x)  {
-               armTarget = 1859;
-               armMotor.setTargetPosition(armTarget);//204
-               armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           }
-
+            }
+            if (gamepad2.x)  {
+                armTarget = 1859;
+                armMotor.setTargetPosition(armTarget+ armofset);//204
+                armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            }
 
 
 
@@ -356,8 +376,8 @@ public class Opmode extends LinearOpMode {
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f", leftBackPower, rightBackPower);
             telemetry.addData("Roller Pos",  Roller.getPosition());
             telemetry.addData("Wrist Pos",  Wrist.getPosition());
-            telemetry.addData("Arm Pos",  armMotor.getCurrentPosition());
-            telemetry.addData("Arm Pid", armMotor.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER));
+            telemetry.addData("Arm Pos raw",  armMotor.getCurrentPosition());
+            telemetry.addData("Arm Pos ",  getarmpos());            telemetry.addData("Arm Pid", armMotor.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER));
             telemetry.addData("Tele Pos",  teleMotor.getCurrentPosition());
             telemetry.addData("Arm Vel", armMotor.getVelocity());
             telemetry.addData("Arm target", armMotor.getTargetPosition());

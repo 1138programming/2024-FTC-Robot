@@ -31,15 +31,13 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.kauailabs.NavxMicroNavigationSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.IntegratingGyroscope;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
-import java.util.concurrent.TimeUnit;
 
 /*
  * This file contains an example of a Linear "OpMode".
@@ -69,53 +67,46 @@ import java.util.concurrent.TimeUnit;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
 
+@Autonomous(name="Score_Low", group="Linear OpMode")
 
+public class Score_Low extends LinearOpMode {
 
-@Autonomous(name="Auton", group="Linear OpMode")
-
-public class Auton extends LinearOpMode {
-
+    private Drivebase drivebase;
     // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor leftFrontDrive = null;
     private DcMotor leftBackDrive = null;
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
-    private DcMotor armMotor = null;
+    private DcMotorEx armMotor = null;
+    private DcMotor teleMotor = null;
+
 
     private Servo Wrist = null;
     private Servo Roller = null;
 
     private    IntegratingGyroscope gyro;
     private NavxMicroNavigationSensor navxMicro;
-    boolean start = false;
-    boolean reversed  = false;
-    boolean lastpress = false;
-    double left_stick_y;  //Note: pushing stick forward gives negative value
-    double left_stick_x;
-    double right_stick_x;
-    boolean y_button;
-    boolean b_button;
-    boolean a_button;
-    boolean Left_Bumber;
-    boolean Right_Bumber;
-    double Left_Trigger;
-    double Right_Trigger;
-
-    public void  setvalues (double nleft_stick_y, double nleft_stick_x, double nright_stick_x, boolean ny_button, boolean na_button, boolean nb_button, boolean NLeft_Bumber, boolean  NRight_Bumber, double NLeft_Trigger, double NRight_Trigger ) {
-        left_stick_y = nleft_stick_y; //Note: pushing stick forward gives negative value
-        left_stick_x = nleft_stick_x;
-        right_stick_x = nright_stick_x;
-        y_button = ny_button;
-        b_button = nb_button;
-        a_button = na_button;
-
-        Left_Bumber = NLeft_Bumber;
-        Right_Bumber = NRight_Bumber;
-        Left_Trigger = NLeft_Trigger;
-        Right_Trigger = NRight_Trigger;
+    private boolean start = false;
+    private boolean reversed  = false;
+    private boolean lastpress = false;
+    private final double NEW_P = 10;//25 //10
+    private final double NEW_I = 0;
+    private final double NEW_D = 3.6;//3.5
+    private final double NEW_F = 0;
+    PIDFCoefficients pidfNew = new PIDFCoefficients(NEW_P, NEW_I, NEW_D, NEW_F);
+    public boolean opmode() {
+        return  opModeIsActive();
     }
-    public void runcomm () {
+
+
+
+    @Override
+    public void runOpMode() {
+        int armTarget= 0;
+        double speed = 0;
+        boolean speedtoggle = false;
+        int last = 0;
         // Initialize the hardware variables. Note that the strings used here must correspond
         // to the names assigned during the robot configuration step on the DS or RC devices.
         leftFrontDrive  = hardwareMap.get(DcMotor.class, "Left_Front");
@@ -123,14 +114,19 @@ public class Auton extends LinearOpMode {
         rightFrontDrive = hardwareMap.get(DcMotor.class, "Right_Front");
         rightBackDrive = hardwareMap.get(DcMotor.class, "Right_Back");
 
-        armMotor = hardwareMap.get(DcMotor.class, "Arm");
-
+        armMotor = hardwareMap.get(DcMotorEx.class, "Arm");
+        teleMotor = hardwareMap.get(DcMotor.class, "tele");
+        armMotor.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidfNew);
         Wrist = hardwareMap.get(Servo.class, "Wrist");
         Roller = hardwareMap.get(Servo.class, "Roller");
 
         navxMicro = hardwareMap.get(NavxMicroNavigationSensor.class, "navx");
         gyro = (IntegratingGyroscope)navxMicro;
+        int aroffset = armMotor.getCurrentPosition();
 
+        armTarget = armMotor.getCurrentPosition() + 100;
+
+        drivebase = new Drivebase(leftFrontDrive,leftBackDrive,rightFrontDrive, rightBackDrive,gyro);
         // ########################################################################################
         // !!!            IMPORTANT Drive Information. Test your motor directions.            !!!!!
         // ########################################################################################
@@ -142,142 +138,67 @@ public class Auton extends LinearOpMode {
         // Reverse the direction (flip FORWARD <-> REVERSE ) of any wheel that runs backward
         // Keep testing until ALL the wheels move the robot forward when you push the left joystick forward.
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
-        leftFrontDrive.getCurrentPosition();
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
 
         Wrist.setDirection(Servo.Direction.FORWARD);
         Roller.setDirection(Servo.Direction.FORWARD);
-
+        teleMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        double max;
 
 
 
 
+        // A timer helps provide feedback while calibration is taking place
+//        ElapsedTime timer = new ElapsedTime();
 
-        // POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
-        double axial   = -left_stick_y;  // Note: pushing stick forward gives negative value
-        double lateral =  left_stick_x;
-        double yaw     =  right_stick_x;
+        // Wait for the game to start (driver presses START)
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
 
-        // Combine the joystick requests for each axis-motion to determine each wheel's power.
-        // Set up a variable for each drive wheel to save the power level for telemetry.
-        double leftFrontPower  = axial + lateral + yaw;
-        double rightFrontPower = axial - lateral - yaw;
-        double leftBackPower   = axial - lateral + yaw;
-        double rightBackPower  = axial + lateral - yaw;
-
-
-
-        // Normalize the values so no wheel power exceeds 100%
-        // This ensures that the robot maintains the desired motion.
-        max = Math.max(Math.abs(leftFrontPower), Math.abs(rightFrontPower));
-        max = Math.max(max, Math.abs(leftBackPower));
-        max = Math.max(max, Math.abs(rightBackPower));
-
-        if (max > 1.0) {
-            leftFrontPower  /= max;
-            rightFrontPower /= max;
-            leftBackPower   /= max;
-            rightBackPower  /= max;
-        }
-
-        // This is test code:
-        //
-        // Uncomment the following code to test your motor directions.
-        // Each button should make the corresponding motor run FORWARD.
-        //   1) First get all the motors to take to correct positions on the robot
-        //      by adjusting your Robot Configuration if necessary.
-        //   2) Then make sure they run in the correct direction by modifying the
-        //      the setDirection() calls above.
-        // Once the correct motors move in the correct direction re-comment this code.
-
-            /*
-            leftFrontPower  = gamepad1.x ? 1.0 : 0.0;  // X gamepad
-            leftBackPower   = gamepad1.a ? 1.0 : 0.0;  // A gamepad
-            rightFrontPower = gamepad1.y ? 1.0 : 0.0;  // Y gamepad
-            rightBackPower  = gamepad1.b ? 1.0 : 0.0;  // B gamepad
-            */
-
-        // Send calculated power to wheels
-        if (!reversed) {
-            leftFrontDrive.setPower(leftFrontPower);
-            rightFrontDrive.setPower(rightFrontPower);
-            leftBackDrive.setPower(leftBackPower);
-            rightBackDrive.setPower(rightBackPower);
-        }
-        else {
-            leftFrontDrive.setPower(-leftFrontPower);
-            rightFrontDrive.setPower(-rightFrontPower);
-            leftBackDrive.setPower(-leftBackPower);
-            rightBackDrive.setPower(-rightBackPower);
-        }
-        if (y_button && !lastpress){
-            reversed = !reversed;
-            lastpress = true;
-        }
-        else if (!y_button){
-            lastpress = false;
-        }
-
-        if (gamepad2.left_bumper) {
-            armMotor.setPower(1);
-        }
-        else if (gamepad2.left_trigger > 0) {
-            armMotor.setPower(-1);
-        }
-        else {
-            armMotor.setPower(0);
-        }
-
-        if (gamepad2.right_bumper) {
-            start = true;
-            Wrist.setPosition(0.15);
-        }
-        else if (gamepad2.right_trigger > 0) {
-            start = true;
-            Wrist.setPosition(0.85);
-        }
-        else  if (start){
-            Wrist.setPosition(0.5);
-        }
-        else {
-            Wrist.setPosition(0.85);
-        }
-
-
-        if (a_button) {
-            Roller.setPosition(0);
-        }
-        else if (b_button) {
-            Roller.setPosition(1);
-        }
-        else {
-            Roller.setPosition(0.5);
-        }
-    }
-
-    @Override
-    public void runOpMode() {
+        double wristposition = 0;
 
         waitForStart();
-        setvalues(-0.7, 0,0, false,false, false, false,false,0,0 );
-        for (int x=0;x < 55; x++) {
-            runcomm();
-            sleep(100 );
 
-            x++;
-        }
+        armMotor.setTargetPosition(armMotor.getCurrentPosition()+100);
+        armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        armMotor.setPower(1);
+//        runtime.reset();
+        drivebase.resetfeildrot();
+        drivebase.driveTime(-1,(float) 0.55,(float) 0.5,true,(float)0.6,650,this);
+        armTarget = 1860;
+
+        armMotor.setTargetPosition(armTarget + aroffset);
+        armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        armMotor.setPower(1);
+        teleMotor.setPower(-1);
+        sleep(50);
+        teleMotor.setPower(0);
+        while (opModeIsActive()) {if (Math.abs((armMotor.getCurrentPosition()-aroffset) - armTarget) > 100) {sleep(1);} else {break;}}
+        drivebase.driveTime(0,1,0,true,(float)0.5,450, this);
+
+
+        Roller.setPosition(0.1);
+        sleep(2000);
+        Roller.setPosition(0.5);
+        sleep(1000);
+        drivebase.driveTime(0,-1,0,true,(float)0.5,50, this);
 
 
 
+        telemetry.update();
 
-        setvalues(0, 0,0, false,false, false, false,false,0,0 );
+//        while (opModeIsActive()) {
+//
+//
+//
+//        }
+
+
+
 
 
 
     }}
-

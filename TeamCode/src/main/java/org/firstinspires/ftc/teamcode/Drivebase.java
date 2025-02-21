@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IntegratingGyroscope;
 
@@ -161,6 +162,33 @@ public class Drivebase {
     }
 
     public void driveDist() {
+
+    }
+    public void driveTime(float x_velocity, float y_velocity, float Rot, boolean reversed, float speed, int time, LinearOpMode opmode )  {
+        try {
+            for (int x = 0; x < time; x++) {
+                if (opmode.opModeIsActive()) {
+                    drive(x_velocity, y_velocity, Rot, reversed, (float) speed);
+                    Thread.sleep(1);
+                    x++;
+                }
+                else {
+                    drive(0,0,0,true,(float)0);
+                    return;
+                }
+
+
+            }
+            drive(0,0,0,true,(float)0);
+
+            return;
+
+        }
+        catch (InterruptedException e) {
+            drive(0,0,0,true,(float)0);
+
+            return;
+        }
 
     }
 

@@ -115,9 +115,15 @@ public class FeildCentricBeta extends LinearOpMode {
         }
         return output;
     }
+    int armofset =0;
+    public int getarmpos() {
+        return armMotor.getCurrentPosition() - armofset;
+    }
     @Override
     public void runOpMode() {
         int armTarget= 0;
+        int stop = 2750;
+
         double speed = 0;
         boolean speedtoggle = false;
         int last = 0;
@@ -134,10 +140,13 @@ public class FeildCentricBeta extends LinearOpMode {
         Wrist = hardwareMap.get(Servo.class, "Wrist");
         Roller = hardwareMap.get(Servo.class, "Roller");
 
+
         navxMicro = hardwareMap.get(NavxMicroNavigationSensor.class, "navx");
         gyro = (IntegratingGyroscope)navxMicro;
+        armofset = armMotor.getCurrentPosition();
 
-        armTarget = armMotor.getCurrentPosition() + 100;
+//        armTarget = armMotor.getCurrentPosition() + 100;
+        armTarget = getarmpos() + 100;
 
         drivebase = new Drivebase(leftFrontDrive,leftBackDrive,rightFrontDrive, rightBackDrive,gyro);
         // ########################################################################################
@@ -214,13 +223,20 @@ public class FeildCentricBeta extends LinearOpMode {
 
 
             drivebase.driveFeildRelative(gamepad1.left_stick_x, gamepad1.left_stick_y, gamepad1.right_stick_x, false, (float)speed);
-
             armMotor.setPower(1);
             if (gamepad2.left_bumper) {
-                last = 5;
-                armMotor.setPower(0.5);
+                if (getarmpos() + 5 < stop) {
+                    last = 5;
+                    armMotor.setPower(0.5);
 //                armTarget = armMotor.getCurrentPosition() + 100;
-                armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                    armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                }
+                else {
+                    armTarget = stop;
+                    armMotor.setTargetPosition(armTarget + armofset);
+                    armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                }
+
             }
             else if (gamepad2.left_trigger > 0) {
                 last = -5;
@@ -229,21 +245,27 @@ public class FeildCentricBeta extends LinearOpMode {
                 armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             }
             else if (last != 0) {
-                armTarget = (armMotor.getCurrentPosition() + last);
-                armMotor.setTargetPosition(armTarget);
+                if ((getarmpos() + last) < stop) {
+                    armTarget = (getarmpos()  + last);
+                }
+                else {
+                    armTarget = stop;
+                }
+                armMotor.setTargetPosition(armTarget+ armofset);
                 armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 last = 0;
             }
-           else {
-               armMotor.setTargetPosition(armTarget);
-               armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            else {
+                armMotor.setTargetPosition(armTarget+ armofset);
+                armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-           }
-           if (gamepad2.x)  {
-               armTarget = 1859;
-               armMotor.setTargetPosition(armTarget);//204
-               armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           }
+            }
+            if (gamepad2.x)  {
+                armTarget = 1859;
+                armMotor.setTargetPosition(armTarget+ armofset);//204
+                armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            }
+
 
 
 
@@ -308,7 +330,8 @@ public class FeildCentricBeta extends LinearOpMode {
 //            telemetry.addData("Back  left/Right", "%4.2f, %4.2f", leftBackPower, rightBackPower);
             telemetry.addData("Roller Pos",  Roller.getPosition());
             telemetry.addData("Wrist Pos",  Wrist.getPosition());
-            telemetry.addData("Arm Pos",  armMotor.getCurrentPosition());
+            telemetry.addData("Arm Pos raw",  armMotor.getCurrentPosition());
+            telemetry.addData("Arm Pos ",  getarmpos());
             telemetry.addData("Arm Pid", armMotor.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER));
             telemetry.addData("Tele Pos",  teleMotor.getCurrentPosition());
             telemetry.addData("Arm Vel", armMotor.getVelocity());
