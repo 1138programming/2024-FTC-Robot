@@ -30,9 +30,9 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.kauailabs.NavxMicroNavigationSensor;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.IntegratingGyroscope;
@@ -73,7 +73,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
 
-@TeleOp(name="OpMode done 2", group="Linear OpMode")
+@TeleOp(name="OpMode done 5", group="Linear OpMode")
 
 public class Opmode extends LinearOpMode {
 
@@ -86,10 +86,11 @@ public class Opmode extends LinearOpMode {
     private DcMotorEx armMotor = null;
     private DcMotor teleMotor = null;
 
-    private Servo Wrist = null;
-    private Servo Roller = null;
+    private CRServo wristL = null;
+    private CRServo wristR = null;
+    private CRServo claw = null;
 
-    private    IntegratingGyroscope gyro;
+    private IntegratingGyroscope gyro;
     private NavxMicroNavigationSensor navxMicro;
     private boolean start = false;
     private boolean reversed  = false;
@@ -137,8 +138,10 @@ public class Opmode extends LinearOpMode {
         armMotor = hardwareMap.get(DcMotorEx.class, "Arm");
         teleMotor = hardwareMap.get(DcMotor.class, "tele");
         armMotor.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidfNew);
-        Wrist = hardwareMap.get(Servo.class, "Wrist");
-        Roller = hardwareMap.get(Servo.class, "Roller");
+
+        wristL = hardwareMap.get(CRServo.class, "wristL");
+        wristR = hardwareMap.get(CRServo.class, "wristR");
+        claw = hardwareMap.get(CRServo.class, "claw");
 
         navxMicro = hardwareMap.get(NavxMicroNavigationSensor.class, "navx");
         gyro = (IntegratingGyroscope)navxMicro;
@@ -162,8 +165,9 @@ public class Opmode extends LinearOpMode {
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
 
-        Wrist.setDirection(Servo.Direction.FORWARD);
-        Roller.setDirection(Servo.Direction.FORWARD);
+        wristL.setDirection(CRServo.Direction.FORWARD);
+        wristR.setDirection(CRServo.Direction.REVERSE);
+        claw.setDirection(CRServo.Direction.FORWARD);
         teleMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
@@ -199,10 +203,10 @@ public class Opmode extends LinearOpMode {
             double highSpeed = 0.90;
 
             if (speedtoggle) {
-                speed = highSpeed;
+                speed = lowSpeed;
             }
             else {
-                speed = lowSpeed;
+                speed = highSpeed;
             }
 
             // Combine the joystick requests for each axis-motion to determine each wheel's power.
@@ -264,12 +268,9 @@ public class Opmode extends LinearOpMode {
                 lastpress = false;
             }
 
-            if (gamepad1.left_bumper){
-               speedtoggle = true;
-            }
-            else {
-                speedtoggle = false;
-            }
+            // Turns on speedToggle when the left bumper is pressed
+            // (starts fast, becomes slower when pressed)
+            speedtoggle = gamepad1.left_bumper;
 
             armMotor.setPower(1);
             if (gamepad2.left_bumper) {
@@ -337,7 +338,7 @@ public class Opmode extends LinearOpMode {
 // pickup 204
 
 
-
+            /*
             if (gamepad2.right_bumper) {
                 start = true;
                 Wrist.setPosition(0.15);
@@ -353,29 +354,55 @@ public class Opmode extends LinearOpMode {
 //                Wrist.setPosition(0.85);
                  Wrist.setPosition(0.5);
 
+            } */
+
+            if(gamepad2.right_trigger > 0.1) {
+                claw.setPower(0.1);
+            }
+            else if (gamepad2.right_bumper) {
+                claw.setPower(0.9);
             }
 
-
-            if (gamepad2.a) {
-                Roller.setPosition(0.1);
-            }
-            else if (gamepad2.b) {
-                Roller.setPosition(0.9);
+            if(Math.abs(gamepad2.left_stick_y) > Math.abs(gamepad2.right_stick_x)) {
+                if (gamepad2.left_stick_y > 0.1) {
+                    wristR.setPower(0.25);
+                    wristL.setPower(0.25);
+                } else if (gamepad2.left_stick_y < -0.1) {
+                    wristR.setPower(-0.25);
+                    wristL.setPower(-0.25);
+                }
+                else {
+                    wristR.setPower(0);
+                    wristL.setPower(0);
+                }
             }
             else {
-                Roller.setPosition(0.5);
+                if (gamepad2.right_stick_x > 0.1) {
+                    wristR.setPower(0.25);
+                    wristL.setPower(-0.25);
+                } else if (gamepad2.right_stick_x < -0.1) {
+                    wristR.setPower(-0.25);
+                    wristL.setPower(0.25);
+                }
+                else {
+                    wristR.setPower(0);
+                    wristL.setPower(0);
+                }
             }
-
-
-
-
+//            if (gamepad2.a) {
+//                Roller.setPosition(0.1);
+//            }
+//            else if (gamepad2.b) {
+//                Roller.setPosition(0.9);
+//            }
+//            else {
+//                Roller.setPosition(0.5);
+//            }
 
             // Show the elapsed game time and wheel power.
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Front left/Right", "%4.2f, %4.2f", leftFrontPower, rightFrontPower);
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f", leftBackPower, rightBackPower);
-            telemetry.addData("Roller Pos",  Roller.getPosition());
-            telemetry.addData("Wrist Pos",  Wrist.getPosition());
             telemetry.addData("Arm Pos raw",  armMotor.getCurrentPosition());
             telemetry.addData("Arm Pos ",  getarmpos());            telemetry.addData("Arm Pid", armMotor.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER));
             telemetry.addData("Tele Pos",  teleMotor.getCurrentPosition());

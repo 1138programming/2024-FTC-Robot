@@ -83,8 +83,8 @@ public class Auton extends LinearOpMode {
     private DcMotor rightBackDrive = null;
     private DcMotor armMotor = null;
 
-    private Servo Wrist = null;
-    private Servo Roller = null;
+  //  private Servo Wrist = null;
+    //private Servo Roller = null;
 
     private    IntegratingGyroscope gyro;
     private NavxMicroNavigationSensor navxMicro;
@@ -125,8 +125,8 @@ public class Auton extends LinearOpMode {
 
         armMotor = hardwareMap.get(DcMotor.class, "Arm");
 
-        Wrist = hardwareMap.get(Servo.class, "Wrist");
-        Roller = hardwareMap.get(Servo.class, "Roller");
+      //  Wrist = hardwareMap.get(Servo.class, "Wrist");
+        //Roller = hardwareMap.get(Servo.class, "Roller");
 
         navxMicro = hardwareMap.get(NavxMicroNavigationSensor.class, "navx");
         gyro = (IntegratingGyroscope)navxMicro;
@@ -146,10 +146,10 @@ public class Auton extends LinearOpMode {
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
-
+/*
         Wrist.setDirection(Servo.Direction.FORWARD);
         Roller.setDirection(Servo.Direction.FORWARD);
-
+*/
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         double max;
@@ -235,28 +235,28 @@ public class Auton extends LinearOpMode {
 
         if (gamepad2.right_bumper) {
             start = true;
-            Wrist.setPosition(0.15);
+            //Wrist.setPosition(0.15);
         }
         else if (gamepad2.right_trigger > 0) {
             start = true;
-            Wrist.setPosition(0.85);
+            //Wrist.setPosition(0.85);
         }
         else  if (start){
-            Wrist.setPosition(0.5);
+           // Wrist.setPosition(0.5);
         }
         else {
-            Wrist.setPosition(0.85);
+            //Wrist.setPosition(0.85);
         }
 
 
         if (a_button) {
-            Roller.setPosition(0);
+            //Roller.setPosition(0);
         }
         else if (b_button) {
-            Roller.setPosition(1);
+           // Roller.setPosition(1);
         }
         else {
-            Roller.setPosition(0.5);
+           // Roller.setPosition(0.5);
         }
     }
 
